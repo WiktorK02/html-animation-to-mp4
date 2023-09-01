@@ -8,6 +8,7 @@ Application that visualize typing code editor via canvas animation and convert i
 
 ## Task list
 * remove files from uploads
+* issue with speeding aniamtion 
 * style
 * make function to input code
 ## How to Contribute
