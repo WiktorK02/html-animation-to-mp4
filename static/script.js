@@ -1,14 +1,14 @@
-  const startButton = document.getElementById('startBtn');
-  const stopButton = document.getElementById('stopBtn');
+const startButton = document.getElementById('startBtn');
+const stopButton = document.getElementById('stopBtn');
 
-  const downloadLink = document.getElementById('downloadLink');
-  const canvas = document.getElementById('animationCanvas');
-  canvas.width = 640;
-  canvas.height = 480;
-  const ctx = canvas.getContext('2d');
-  let animationFrameId;
+const downloadLink = document.getElementById('downloadLink');
+const canvas = document.getElementById('animationCanvas');
+canvas.width = 640;
+canvas.height = 480;
+const ctx = canvas.getContext('2d');
+let animationFrameId;
 
-  const code = `
+const code = `
 # Python3 program to add two numbers
 num1 = 15
 num2 = 12
@@ -18,17 +18,19 @@ sum = num1 + num2
 
 # printing values
 print("Sum of", num1, "and", num2 , "is", sum)
-  `;
+`;
 
-  let cursorVisible = true;
-  let yOffset = 30;
-  let currentChar = 0;
+let cursorVisible = true;
+let yOffset = 30;
+let currentChar = 0;
 
-const animationDelay = 100; // Adjust this value for slower/faster animation
+// Adjust this value for slower/faster animation
+const animationDelay = 100;
+let animationSpeed = animationDelay; // Added animationSpeed variable
 let lastUpdateTime = 0;
 
 function draw(timestamp) {
-  if (timestamp - lastUpdateTime >= animationDelay) {
+  if (timestamp - lastUpdateTime >= animationSpeed) { // Use animationSpeed here
     lastUpdateTime = timestamp;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -65,69 +67,54 @@ function draw(timestamp) {
   requestAnimationFrame(draw);
 }
 
+draw();
 
-  draw();
+const frames = []; // Array to store captured frames
 
-let mediaRecorder = null;
+function captureFrame() {
+  html2canvas(canvas).then((canvas) => {
+    const frame = canvas.toDataURL('image/jpeg', 0.8); // Convert the canvas to an image
+    frames.push(frame);
+
+    if (currentChar < code.length) {
+      currentChar++;
+      requestAnimationFrame(captureFrame);
+    } else {
+      // All frames captured, send them to the server
+      fetch('/convert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ frames }),
+      })
+        .then(response => response.text())
+        .then(filename => {
+          downloadLink.href = `/download/${filename}`;
+          downloadLink.style.display = 'block';
+        });
+    }
+  });
+}
+
+startButton.addEventListener('click', () => {
+  frames.length = 0; // Clear frames array
+  resetAnimation(); // Reset animation variables
+  animationSpeed = animationDelay; // Set animation speed
+  captureFrame(); // Start capturing frames
+});
+
+stopButton.addEventListener('click', () => {
+  frames.length = 0; // Clear frames array
+  resetAnimation(); // Reset animation variables
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  cancelAnimationFrame(animationFrameId);
+});
 
 function resetAnimation() {
   currentChar = 0;
   yOffset = 30;
   cursorVisible = true;
+  animationSpeed = animationDelay; // Reset animation speed
 }
 
-startButton.addEventListener('click', async () => {
-  if (mediaRecorder) {
-    mediaRecorder.stop();
-    cancelAnimationFrame(animationFrameId);
-  }
-
-  recordedChunks = [];
-  canvas.style.visibility = 'visible'; // Show the canvas
-
-  startButton.disabled = true;
-  stopButton.disabled = false;
-
-  resetAnimation(); // Reset animation variables
-
-  const stream = canvas.captureStream();
-  mediaRecorder = new MediaRecorder(stream);
-
-  mediaRecorder.ondataavailable = (event) => {
-    if (event.data.size > 0) {
-      recordedChunks.push(event.data);
-    }
-  };
-
-  mediaRecorder.onstop = () => {
-    cancelAnimationFrame(animationFrameId);
-
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    const formData = new FormData();
-    formData.append('video', blob);
-
-    fetch('/upload', {
-      method: 'POST',
-      body: formData
-    })
-      .then(response => response.text())
-      .then(filename => {
-        downloadLink.href = `/download/${filename}`;
-        downloadLink.style.display = 'block';
-      });
-  };
-
-  mediaRecorder.start();
-  resetAnimation(); // Reset animation variables
-  animationFrameId = requestAnimationFrame(draw);
-});
-
-stopButton.addEventListener('click', () => {
-    if (mediaRecorder) {
-        mediaRecorder.stop();
-    }
-    stopButton.disabled = true;
-    startButton.disabled = false;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    cancelAnimationFrame(animationFrameId);
-});
