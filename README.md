@@ -15,7 +15,7 @@ Application that visualize typing code editor via canvas animation and convert i
 1. Fork the Project
 2. Clone repo with your GitHub username instead of ```YOUR-USERNAME```:<br>
 ```
-$ git clone https://github.com/YOUR-USERNAME/arduino-wifi-and-mqtt
+$ git clone https://github.com/YOUR-USERNAME/html-animation-to-mp4
 ```
 3. Create new branch:<br>
 ```
